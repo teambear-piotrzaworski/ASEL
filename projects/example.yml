@@ -1,0 +1,66 @@
+# Project registry entry - the template to copy.
+#
+# THE ORCHESTRATOR SKIPS THIS FILE. `projects/example.yml` is documentation, not
+# a project: the loader drops it by name, so editing it in place adds nothing to
+# the factory. COPY it instead:
+#
+#   cp projects/example.yml projects/<your-project>.yml
+#
+# Then point `repo` at a repository your GITHUB_TOKEN can write to, adjust the
+# checks to commands that actually exist in the project image, and run
+# ./asel.sh doctor (it verifies the token can see the repo) and ./asel.sh restart.
+#
+# Everything in projects/ except this template is gitignored, so your real
+# registry entries stay local.
+
+# Slug used in logs and in the state database. Letters, digits, dots, dashes.
+name: example
+
+# The repository the factory works on. github.com/owner/name, owner/name and
+# the full https / git@ forms are all accepted.
+repo: github.com/your-org/your-project
+
+# Container image the agent runs in. The base image built by ./asel.sh build,
+# or a project image that inherits from it (FROM asel-agent-runtime:latest).
+image: asel-agent-runtime:latest
+
+# Optional. How many runs of THIS project may go at once. Omitted = the
+# per_project_default from asel.yml. The one-run-per-plan rule still applies
+# on top of it, so tasks of a single epic stay sequential either way.
+concurrency: 1
+
+# Names (not values) of the environment variables handed to the task container.
+# The values come from the orchestrator's own environment, so anything listed
+# here has to be present in .env as well.
+env: []
+# env:
+#   - DATABASE_URL
+
+gates:
+  # false = a successful slices run goes straight to the tasks run, without
+  # waiting for a human to approve the plan. Defaults to true.
+  plan_approval: true
+
+# Substrate commands the ORCHESTRATOR runs inside the task container. Ordered
+# map of name -> shell command; declaration order is execution order, so put the
+# cheap checks first. A name has to start with a letter, and the command has to
+# be on the PATH in the image above.
+#
+# `test` is the one name with a meaning: the red and green phases of an
+# implementation run are gated on it. Without it a run degrades to a single
+# phase, and only the remaining commands act as the final gate.
+checks:
+  typecheck: pnpm tsc --noEmit
+  lint: pnpm lint
+  test: pnpm test --run
+
+# What the green phase of an implementation run may not touch, so that the agent
+# cannot bend the tests to fit its own code. Omit the key to take the defaults
+# below; an explicit empty list is rejected, because switching this guard off has
+# to be a visible decision.
+test_file_patterns:
+  - "**/*.test.*"
+  - "**/*.spec.*"
+  - "test/**"
+  - "tests/**"
+  - "**/__tests__/**"

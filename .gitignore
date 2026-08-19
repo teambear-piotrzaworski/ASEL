@@ -1,0 +1,40 @@
+# secrets
+.env
+.env.local
+
+# dependencies and builds
+node_modules/
+dist/
+*.tsbuildinfo
+
+# runtime state (local equivalents of the docker volumes)
+data/
+
+# repository clones and agent worktrees (bind mount ASEL_REPOS_DIR)
+repos/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+heartbeat
+
+# logs
+*.log
+logs/
+
+# system
+.DS_Store
+Thumbs.db
+
+# editors
+.idea/
+.vscode/
+*.swp
+
+# project registry: one YAML file per project in the factory, kept local.
+# Only the committed template is tracked.
+projects/*
+!projects/example.yml
+
+# local working notes, not part of the published documentation
+NOTES.md

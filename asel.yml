@@ -1,0 +1,14 @@
+poll_interval_seconds: 60
+label_prefix: asel
+concurrency:
+  global: 2
+  per_project_default: 1
+notifications:
+  woopy:
+    enabled: false        # a stub locally, the Woopy inbound webhook on the VPS
+    url_env: WOOPY_INBOUND_URL
+paths:
+  # The repos directory is set by ASEL_REPOS_DIR (asel.sh / docker-compose),
+  # because the path must be identical on the host and in the orchestrator
+  # container (the daemon on the host resolves the agent worktree bind mounts).
+  state: /data/state

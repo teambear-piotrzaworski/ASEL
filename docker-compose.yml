@@ -1,0 +1,48 @@
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    image: asel-orchestrator:latest
+    container_name: asel-orchestrator
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      ASEL_CONFIG_DIR: /app/config
+      ASEL_STATE_DIR: /data/state
+      # Same value as the bind mount below: every path the orchestrator hands
+      # to the docker daemon when spawning agent containers must exist on the
+      # host, because the daemon resolves -v sources on the host.
+      ASEL_REPOS_DIR: ${ASEL_REPOS_DIR:?run through ./asel.sh, or export ASEL_REPOS_DIR / set it in .env}
+      # UID/GID the AGENT containers run as, resolved by ./asel.sh from the host
+      # user (the same pair the agent image is built with). This container runs
+      # as root because it needs docker.sock, so the orchestrator cannot derive
+      # them: without these two the agent would inherit root and leave root
+      # owned files in the bind mounted worktrees. Empty is allowed and only
+      # costs a warning in the log - see runner/sandcastle.ts.
+      ASEL_AGENT_UID: ${ASEL_AGENT_UID:-}
+      ASEL_AGENT_GID: ${ASEL_AGENT_GID:-}
+      DRY_RUN: ${DRY_RUN:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      # Sandcastle spawns sibling containers through the host daemon, no DinD.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Config is read only: the registry is edited in git, not in the container.
+      - ./asel.yml:/app/config/asel.yml:ro
+      - ./projects:/app/config/projects:ro
+      # Host directory mounted under the SAME absolute path on both sides, so
+      # worktree paths mean the same thing to the orchestrator and the daemon.
+      - ${ASEL_REPOS_DIR:?run through ./asel.sh, or export ASEL_REPOS_DIR / set it in .env}:${ASEL_REPOS_DIR}
+      - state:/data/state
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "dist/healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  state:
+    name: asel_state
